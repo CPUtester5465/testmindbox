@@ -1,0 +1,62 @@
+#по поставленному тз я выделил 2е задачи:
+#1) Высокая доступность развертывания модулей на уровне узла и на уровне зоны доступности.
+#2) Эффективное распределение ресурсов с защитой от перераспределения
+
+#Первая задача уже частично решена в интернете, нам как раз нужно распределение на 3 зоны, так что возьмём шаблон из примера
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  selector:
+    matchLabels:
+      app: store
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: store
+    spec:
+      affinity:
+        podAntiAffinity:                                            #В "podAntiAffinity:" этом файле yaml указывается AntiAffinity узла.
+          preferredDuringSchedulingIgnoredDuringExecution:          #позволяет по возможности назначать модули pod разным зонам доступности, если количество модулей pod больше, чем количество зон доступности.
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - store
+            topologyKey: "failure-domain.beta.kubernetes.io/zone"
+      containers:
+      - name: redis-server
+        image: redis:3.2-alpine
+---
+apiVersion: apps/v1
+kind: Pod
+metadata:
+  name: demo
+spec:
+  containers:
+  - name: app
+    image: images.my-company.example/app:v4
+    resources:
+      requests:
+        memory: "128Mi"                                            #Для достижения наименьших затрат ограничемся минимально возможным реквестом
+        cpu: "100m"                                                #Аналогично с CPU
+      limits:
+        memory: "128Mi"                                            #Согласно условию память стабильна, так что лимит будет совпадать с запросом
+        cpu: "500m"                                                #Из-за скачка потребления лимит по cpu сделаем больше 
+---
+apiVersion: apps/v1
+kind: ResoureQuotas                                                
+metadata:
+    name: demo
+spec:
+    hard:
+        requests.cpu: 400m
+        requests.memory: 512mib
+        limits.cpu: 2000m
+        limits.memory: 512mib
+
+#для максимальной отказоустойчивости лучше всего использовать horizontalautoscaler
