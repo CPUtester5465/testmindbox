@@ -76,5 +76,5 @@ apiVersion: autoscaling/v1
    minReplicas: 1
    maxReplicas: 5
    targetCPUUtilizationPercentage: 75
-
+# test 
 ---
