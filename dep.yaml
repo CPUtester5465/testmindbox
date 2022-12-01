@@ -59,4 +59,22 @@ spec:
         limits.cpu: 2000m
         limits.memory: 512mib
 
+---
+
 #для максимальной отказоустойчивости лучше всего использовать horizontalautoscaler
+
+apiVersion: autoscaling/v1
+  kind: HorizontalPodAutoscaler
+  metadata:
+   name: demo
+   namespace: hpa-test
+  spec:
+   scaleTargetRef:
+     apiVersion: apps/v1
+     kind: Deployment
+     name: demo
+   minReplicas: 1
+   maxReplicas: 5
+   targetCPUUtilizationPercentage: 75
+
+---
