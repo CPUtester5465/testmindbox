@@ -64,7 +64,7 @@ spec:
         command:
         - cat
         - /etc/hostname
-    periodSeconds: 10
+    periodSeconds: 5
     failureThreshold: 10
 ---
 apiVersion: apps/v1
