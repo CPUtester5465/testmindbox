@@ -31,12 +31,7 @@ spec:
       containers:
       - name: redis-server
         image: redis:3.2-alpine
----
-apiVersion: apps/v1
-kind: Pod
-metadata:
-  name: demo
-spec:
+    spec:
   containers:
   - name: app
     image: images.my-company.example/app:v4
@@ -47,10 +42,11 @@ spec:
       limits:
         memory: "128Mi"                                            #Согласно условию память стабильна, так что лимит будет совпадать с запросом
         cpu: "500m"                                                #Из-за скачка потребления лимит по cpu сделаем больше 
+
 ---
 apiVersion: apps/v1
-kind: ResoureQuotas                                                
-metadata:
+kind: ResoureQuotas                                                #Используем ResoureQuotas для ограничения запроса ресурсов, чтобы в случае непредвиденного всплеска подтверждения не положить ноду
+metadata:                                                          #от него можно отказаться, если использовать НЕ БОЛЬШЕ ОДНОГО ПОДА НА ОДНУ НОДУ
     name: demo
 spec:
     hard:
@@ -58,23 +54,53 @@ spec:
         requests.memory: 512mib
         limits.cpu: 2000m
         limits.memory: 512mib
-
 ---
 
-#для максимальной отказоустойчивости лучше всего использовать horizontalautoscaler
+#Для грамотрной реализации HPA используем сервер метрик Kubernetes
+#Предположим, что сам сервер c включенным horizontal-pod-autoscaler-use-rest-clients у нас уже развёрнут. 
+#Этот параметр включен по умолчанию в Kubernetes 1.9. GKE 1.9 поставляется с предварительно установленным сервером метрик.
 
-apiVersion: autoscaling/v1
-  kind: HorizontalPodAutoscaler
-  metadata:
-   name: demo
-   namespace: hpa-test
-  spec:
-   scaleTargetRef:
-     apiVersion: apps/v1
-     kind: Deployment
-     name: demo
-   minReplicas: 1
-   maxReplicas: 5
-   targetCPUUtilizationPercentage: 75
-# test 
+apiVersion: apps/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: demo
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: demo
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageValue: 128Mi      #для экономии пространства(и как задано по условию) по памяти таргет поставим на 128
+
 ---
+#Для ещё большего увеличения надёжности добавим CPA автомасштабирование на основе специальных показателей(по запросам)
+#Для реализации данной функции нам необходим некоторый сервис (например Prometheus) - который будет собирать показатели приложений и сохранять их
+#И  k8s-prometheus-adapter, который дополняет Custom Metrics API Kubernetes показателями, предоставленными сборщиком.
+#После настройки сервера Custom metrics мы должны получить общее количество запросов в секунду из Custom Metrics API
+apiVersion: apps/v1
+kind: CustomPodAutoscaler
+metadata:
+  name: demo
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: demo
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Pods
+    pods:
+      metricName: http_requests
+      targetAverageValue: 100          #придумаем данное значение, т.к. не имеем точной информации
+---
+
