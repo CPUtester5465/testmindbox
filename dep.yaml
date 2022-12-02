@@ -45,6 +45,27 @@ spec:
         memory: "128Mi"                                            #Согласно условию память стабильна, так что лимит будет совпадать с запросом
         cpu: "500m"                                                #Из-за скачка потребления лимит по cpu сделаем больше 
 
+--- 
+#Так же добавим startupProbe для защиты от некореектной (слишком долгой) инициализации
+apiVersion: apps/v1
+kind: Pod
+metadata:
+  name: demo
+spec:
+  containers:
+  - name: demo
+    image: busybox:latest
+    args:
+    - /bin/sh
+    - -c
+    - sleep 300
+    startupProbe:
+    exec:
+        command:
+        - cat
+        - /etc/hostname
+    periodSeconds: 10
+    failureThreshold: 10
 ---
 apiVersion: apps/v1
 kind: ResoureQuotas                                                #Используем ResoureQuotas для ограничения запроса ресурсов, чтобы в случае непредвиденного всплеска подтверждения не положить ноду
@@ -105,4 +126,3 @@ spec:
       metricName: http_requests
       targetAverageValue: 100          #придумаем данное значение, т.к. не имеем точной информации
 ---
-
