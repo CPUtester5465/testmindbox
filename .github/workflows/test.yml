@@ -9,5 +9,5 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker://ghcr.io/yannh/kubeconform:master
         with:
-          entrypoint: '/kubeconform'
+          entrypoint: '/kube  conform'
           args: "-summary -output json kubeconfigs/"
