@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: grafana-agent
+  namespace: {{.Release.Namespace}}
+  labels:
+    name: grafana-agent
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: grafana-agent

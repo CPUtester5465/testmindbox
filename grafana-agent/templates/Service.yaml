@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: grafana-agent
+  name: grafana-agent
+  namespace: {{.Release.Namespace}}
+spec:
+  clusterIP: None
+  ports:
+    - name: grafana-agent-http-metrics
+      port: 80
+      targetPort: 80
+  selector:
+    name: grafana-agent
