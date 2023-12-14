@@ -14,14 +14,14 @@ RUN powershell -Command \
     Set-NetFirewallRule -Name "RemoteDesktop-UserMode-In-TCP" -Enabled True; \
     Set-NetFirewallRule -Name "RemoteDesktop-UserMode-In-UDP" -Enabled True
 
-# Set the password for the Administrator account  !!!DONT FORGET PASSWORD DETETE FILE AFTER INSTALL!!!
-RUN net user Administrator "<PASSWORD>"
+# Set the password for the Administrator account
+RUN net user Administrator "YourSecurePasswordHere"
 
 # Expose the RDP port
 EXPOSE 3389
 
-# Indicate a mount point at /data
-VOLUME C:/data
+# Indicate a mount point at /data1 (!!!CRREATE FOLDER!!!)
+VOLUME D:/data1
 
 # Run an infinite loop to keep the container running
 CMD ["powershell", "-Command", "while ($true) { Start-Sleep -Seconds 3600 }"]
